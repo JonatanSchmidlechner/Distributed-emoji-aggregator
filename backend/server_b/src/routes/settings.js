@@ -1,5 +1,5 @@
 import express from "express";
-import {getInterval, updateInterval, getThreshold, updateThreshold, getAllowedEmotes, updateAllowedEmotes} from "../controllers/settingsController"
+import {getInterval, updateInterval, getThreshold, updateThreshold, getAllowedEmotes, updateAllowedEmotes} from "../controllers/settingsController.js"
 
 const router = express.Router();
 

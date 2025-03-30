@@ -1,5 +1,1 @@
-{
-    "interval": 10,
-    "threshold": 10,
-    "allowedEmotes": []
-}
+{"interval":130,"threshold":0.5,"allowedEmotes":["😀","😂","👍"]}

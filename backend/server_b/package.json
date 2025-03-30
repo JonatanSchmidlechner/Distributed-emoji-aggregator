@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "type": "module",
   "description": "This directory is for the code of the _server B_. A starter Dockerfile has been added, it has some comments to get you started.",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
   }
 }

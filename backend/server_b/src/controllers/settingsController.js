@@ -1,3 +1,4 @@
+import { error } from "console";
 import * as fs from "fs";
 
 /**
@@ -9,9 +10,10 @@ import * as fs from "fs";
  * @param {Object} res - Express response object.
  * @returns {void} Sends a JSON response with the interval value or an error message.
  */
-export const getInterval = (res) => {
+export const getInterval = (req, res) => {
     fs.readFile(process.env.SETTINGSPATH, (error, data) => {
         if (error) {
+            console.log(error);
             res.status(500).json({"error": "Server error: Could not read data"})
             return;
         }
@@ -31,11 +33,12 @@ export const getInterval = (res) => {
  * @returns {void} Sends a response with status code 200, 400 or 500.
  */
 export const updateInterval = async (req, res) => {
-    const updatedInterval = Number(req.query.interval);
+    const updatedInterval = Number(req.body.interval);
     if (!isNaN(updatedInterval) && updatedInterval >= 0) {
-        updateSetting("interval", updatedInterval);
+        updateSetting("interval", updatedInterval, res);
         return;
     }
+
     res.status(400).json({"error": "Invalid client side input"});
 }
 
@@ -71,9 +74,9 @@ export const getThreshold = (req, res) => {
  * @returns {void} Sends a response with status code 200, 400 or 500.
  */
 export const updateThreshold = (req, res) => {
-    const updatedThreshold = Number(req.query.threshold);
-    if (!isNaN(updatedThreshold) && updatedThreshold >= 0) {
-        updateSetting("threshold", updatedThreshold);
+    const updatedThreshold = Number(req.body.threshold);
+    if (!isNaN(updatedThreshold) && updatedThreshold >= 0 && updatedThreshold <= 1) {
+        updateSetting("threshold", updatedThreshold, res);
         return;
     }
     res.status(400).json({"error": "Invalid client side input."});
@@ -111,9 +114,9 @@ export const getAllowedEmotes = (req, res) => {
  * @returns {void} Sends a response with status code 200, 400 or 500.
  */
 export const updateAllowedEmotes = (req, res) => {
-    const updatedAllowedEmotes = req.query.allowedEmotes;
+    const updatedAllowedEmotes = req.body.allowedEmotes;
     if (updatedAllowedEmotes && Array.isArray(updatedAllowedEmotes)) {
-        updateSetting("allowedEmotes", updatedAllowedEmotes);
+        updateSetting("allowedEmotes", updatedAllowedEmotes, res);
         return;
     }
     res.status(400).json({"error": "Invalid client side input"});
@@ -123,11 +126,13 @@ export const updateAllowedEmotes = (req, res) => {
 *
 * @param {string} key - The json property name to be updated.
 * @param {Number | Array[string]} value - The new value for the json object's property.
+* @param {Response} res - A response object.
 * @returns {void} Sends a response with status code 200 or 500
 */
-const updateSetting = (key, value) => {
+const updateSetting = (key, value, res) => {
     fs.readFile(process.env.SETTINGSPATH, (error, data) => {
         if (error) {
+            console.log(error);
             res.status(500).json({"error": "Server error: Could not read data"});
             return;
         }
@@ -135,6 +140,7 @@ const updateSetting = (key, value) => {
         settings[key] = value;
         fs.writeFile(process.env.SETTINGSPATH, JSON.stringify(settings), (error) => {
             if (error) {
+                console.log(error);
                 res.status(500).json({"error": "Server error: Could not write data"})
                 return;
             }
