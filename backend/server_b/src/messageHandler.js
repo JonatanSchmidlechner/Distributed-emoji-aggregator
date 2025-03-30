@@ -6,29 +6,29 @@ const kafka = new Kafka({
     clientId: "server_b",
     brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
 });
-const topic = "raw-emote-data"
+const rawDataTopic = "raw-emote-data"
+const aggregatedDataTopic = "aggregated-emote-data"
 let interval = 10, threshold =10, allowedEmotes = [], lastModifyTimestamp = 0;
 
 
-const consumer = kafka.consumer();
-const producer = kafka.producer();
+const consumer = kafka.consumer({groupId: "server_b"});
+const producer = kafka.producer({groupId: "server_b_producer"});
 
 await consumer.connect();
-await consumer.subscribe({topic, fromBeginning: true})
+await consumer.subscribe({topics: [rawDataTopic], fromBeginning: true})
 
 await producer.connect();
-
 const loadSettings = async () => {
     try {
         const data = await fs.promises.readFile(process.env.SETTINGSPATH, "utf-8");
-        settings = JSON.parse(data);
+        const settings = JSON.parse(data);
         interval = settings.interval, threshold=settings.threshold, allowedEmotes = settings.allowedEmotes;
-        const stats = await fs.promises.stats(process.env.SETTINGSPATH, "utf-8");
+        const stats = await fs.promises.stat(process.env.SETTINGSPATH, "utf-8");
         lastModifyTimestamp = stats.mtime;
     } catch (error) {
+        console.log(error)
         throw new Error("Could not read settings");
     }
-    console.log(interval)
 }
 await loadSettings();
 
@@ -36,14 +36,13 @@ await loadSettings();
 let rawData = [];
 
 await consumer.run({
-    eachMessage: async ({ topic, partition, message}) => {
-        console.log(message.value);
-        /*
-        if (rawData.emote not in allowedEmotes) {
+    eachMessage: async ({ rawDataTopic, partition, message}) => {
+        const decodedRecord = message.value.toString('utf-8')
+        const jsonRecord = JSON.parse(decodedRecord);
+        if (!allowedEmotes.includes(jsonRecord.emote)) {
             return;
         }
-        */
-        rawData.push(message.value);
+        rawData.push(jsonRecord);
         if (rawData.length >= interval) {
             const rawDataCopy = [...rawData];
             rawData = [];
@@ -55,9 +54,9 @@ await consumer.run({
 
 const processData = async (data) => {
     const aggregation = await aggregateData(data, threshold);
-    console.log(aggregation);
+    console.log("datamining aggregation", aggregation);
     await producer.send({
-        topic,
+        topic: aggregatedDataTopic,
         messages: [{ value: JSON.stringify(aggregation)} ]
     });
 }
@@ -73,5 +72,3 @@ setInterval( async () => {
         console.log(error)
     }
 }, 10000)
-
-export default messageHandler;
