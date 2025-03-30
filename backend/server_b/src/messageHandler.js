@@ -1,14 +1,13 @@
-import Kafka from "kafkajs";
+import {Kafka} from "kafkajs";
 import * as fs from "fs";
-import aggregateData from "./dataAggregater";
-
+import {aggregateData} from "./dataAggregater.js";
+console.log("run kafka");
 const kafka = new Kafka({
     clientId: "server_b",
     brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
 });
 const topic = "raw-emote-data"
 let interval = 10, threshold =10, allowedEmotes = [], lastModifyTimestamp = 0;
-await loadSettings();
 
 
 const consumer = kafka.consumer();
@@ -18,6 +17,20 @@ await consumer.connect();
 await consumer.subscribe({topic, fromBeginning: true})
 
 await producer.connect();
+
+const loadSettings = async () => {
+    try {
+        const data = await fs.promises.readFile(process.env.SETTINGSPATH, "utf-8");
+        settings = JSON.parse(data);
+        interval = settings.interval, threshold=settings.threshold, allowedEmotes = settings.allowedEmotes;
+        const stats = await fs.promises.stats(process.env.SETTINGSPATH, "utf-8");
+        lastModifyTimestamp = stats.mtime;
+    } catch (error) {
+        throw new Error("Could not read settings");
+    }
+    console.log(interval)
+}
+await loadSettings();
 
 // Array to store data, which will eventually be sent to be analysed.
 let rawData = [];
@@ -49,20 +62,6 @@ const processData = async (data) => {
     });
 }
 
-
-const loadSettings = async () => {
-    try {
-        const data = await fs.promises.readFile(process.env.SETTINGSPATH, "utf-8");
-        settings = JSON.parse(data);
-        interval = settings.interval, threshold=settings.threshold, allowedEmotes = settings.allowedEmotes;
-        const stats = await fs.promises.stats(process.env.SETTINGSPATH, "utf-8");
-        lastModifyTimestamp = stats.mtime;
-    } catch (error) {
-        throw new Error("Could not read settings");
-    }
-    console.log(interval)
-}
-
 setInterval( async () => {
     try {
         const modifyTimestamp = (await fs.promises.stat(process.env.SETTINGSPATH)).mtime;
@@ -74,3 +73,5 @@ setInterval( async () => {
         console.log(error)
     }
 }, 10000)
+
+export default messageHandler;
