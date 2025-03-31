@@ -1,8 +1,7 @@
 import app from "./app.js";
 import "./src/messageHandler.js"
-console.log("Server starting...")
 
-const PORT = 3000;
+const PORT = 8080;
 app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`)
 })

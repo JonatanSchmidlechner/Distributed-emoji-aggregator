@@ -65,7 +65,7 @@ setInterval( async () => {
     try {
         const modifyTimestamp = (await fs.promises.stat(process.env.SETTINGSPATH)).mtime;
         if (modifyTimestamp > lastModifyTimestamp) {
-            loadSettings();
+            await loadSettings();
             lastModifyTimestamp = modifyTimestamp;
         }
     } catch (error) {
