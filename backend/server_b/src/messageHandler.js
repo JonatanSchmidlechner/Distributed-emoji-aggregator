@@ -8,7 +8,7 @@ const kafka = new Kafka({
 });
 const rawDataTopic = "raw-emote-data"
 const aggregatedDataTopic = "aggregated-emote-data"
-let interval = 10, threshold =10, allowedEmotes = [], lastModifyTimestamp = 0;
+let interval = 150, threshold =0.4, allowedEmotes = ['❤️', '👍', '😢', '😡'], lastModifyTimestamp = 0;
 
 
 const consumer = kafka.consumer({groupId: "server_b"});
@@ -27,7 +27,7 @@ const loadSettings = async () => {
         lastModifyTimestamp = stats.mtime;
     } catch (error) {
         console.log(error)
-        throw new Error("Could not read settings");
+        return
     }
 }
 await loadSettings();
