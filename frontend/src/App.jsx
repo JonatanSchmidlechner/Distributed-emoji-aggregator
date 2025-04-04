@@ -85,7 +85,7 @@ function App() {
         console.log("Failed to update allowed emotes");
       }
     } catch (error) {
-      console.error("Error updating allowed emotes:", error);
+      console.error("Error updating allowed emotes: ", error);
     }
   };
 
