@@ -30,16 +30,16 @@ services:
       timeout: 10s
       retries: 20
 
-  # server_a:
-  #   build: ./backend/server_a
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - kafka
-  #   environment:
-  #     - KAFKA_BROKER=kafka:9092
-  #   networks:
-  #     - backend
+  server_a:
+    build: ./backend/server_a
+    #ports:
+     # - "3000:3000"
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BROKER=kafka:9092
+    networks:
+      - backend
 
   emote_generator:
     build: ./backend/emotegen
