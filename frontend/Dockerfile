@@ -1,8 +1,24 @@
 # frontend/Dockerfile
 
-#Some implementation ideas provided below, but feel free to use your own.
+# Use Node.js for build
+FROM node:18-alpine AS build
 
-#FROM nginx:alpine
+WORKDIR /app
 
-#COPY . /usr/share/nginx/html
-#COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy package files and install dependencies
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copy app source and build
+COPY . .
+RUN npm run build
+
+# Serve the build with Nginx
+FROM nginx:alpine
+# COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/build /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+
