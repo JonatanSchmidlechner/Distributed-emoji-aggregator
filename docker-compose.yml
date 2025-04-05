@@ -12,7 +12,7 @@ services:
   # below, groups should set their values. Groups are free to
   # CRUD the set of instructions as they see fit.
   kafka:
-    image: 'bitnami/kafka:latest'
+    image: bitnami/kafka:3.6.1
     networks: 
       - backend
     ports:
@@ -24,6 +24,8 @@ services:
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
       interval: 5s
@@ -32,10 +34,11 @@ services:
 
   server_a:
     build: ./backend/server_a
-    #ports:
-     # - "3000:3000"
+    ports:
+      - "8082:8082"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     environment:
       - KAFKA_BROKER=kafka:9092
     networks:

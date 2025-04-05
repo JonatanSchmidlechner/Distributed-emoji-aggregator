@@ -54,7 +54,6 @@ await consumer.run({
 
 const processData = async (data) => {
     const aggregation = await aggregateData(data, threshold);
-    console.log("datamining aggregation", aggregation);
     await producer.send({
         topic: aggregatedDataTopic,
         messages: [{ value: JSON.stringify(aggregation)} ]

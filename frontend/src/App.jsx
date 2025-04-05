@@ -9,6 +9,16 @@ function App() {
 
   useEffect(() => {
     fetchSettings();
+    const socket = new WebSocket("ws://localhost:8082")
+    socket.addEventListener("message", (event) => {
+      const msg = JSON.parse(event.data);
+      console.log("This is aggregated data from server_a", msg);
+    });
+    // Cleanup function so there are no memory leaks when the component unmounts.
+    return () => {
+      console.log("cleanup function")
+      socket.removeEventListener("message", () => {});
+    }
   }, []);
 
   const fetchSettings = async () => {

@@ -5,6 +5,7 @@
 
 #FROM node:version...
 FROM node:18
+EXPOSE 8082
 #WORKDIR ?
 WORKDIR /app
 #COPY ?
@@ -15,12 +16,3 @@ RUN npm install
 COPY . .
 #CMD [??]
 CMD [ "npm", "start" ]
-
-
-
-
-
-
-
-
-

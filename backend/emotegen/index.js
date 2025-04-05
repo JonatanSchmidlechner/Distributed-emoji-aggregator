@@ -12,6 +12,7 @@ const emotes = ['❤️', '👍', '😢', '😡'];
 const topic = 'raw-emote-data';
 
 const createTopics = async () => {
+    try {
     await admin.connect();
     await admin.createTopics({
         topics: [
@@ -19,8 +20,12 @@ const createTopics = async () => {
             { topic: 'aggregated-emote-data', numPartitions: 1, replicationFactor: 1 }
         ]
     });
-
+    } catch (error) {
+        console.error('THIS IS MY CUSTOM ERROR MESSAGE:', error);
+        console.error('Topic creation failed:', JSON.stringify(err, null, 2));
+  } finally {
     await admin.disconnect();
+  }
 };
 
 const getRandomEmote = async () => {
