@@ -1,22 +1,17 @@
-# This is the docker-compose-yml file that must be able to start
-# your group's backend.
-
-# Remember to comment this file well!
-
 services:
-
-  # You can base this service on a bitnami/kafka Docker Hub image.
-  # You need to expose the kafka port to other containers
-  # in this  docker-compose.yml
-  # A set of needed Docker instructions like 'image:' are shown
-  # below, groups should set their values. Groups are free to
-  # CRUD the set of instructions as they see fit.
   kafka:
+    # Use readymade image from dockerhub.
     image: bitnami/kafka:3.6.1
+
+    # Add to backend network. 
     networks: 
       - backend
+
+    # Map container's port 9092 to host machine's port 9092.
     ports:
       - 9092:9092
+
+    # The environment variables and values have been chosen according to an example here: https://hub.docker.com/r/bitnami/kafka
     environment:
       - KAFKA_CFG_NODE_ID=0
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
@@ -26,72 +21,115 @@ services:
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+
+    # This healthcheck checks that Kafka is operation ready. This is used in ensuring Kafka is
+    # ready before starting services that are dependent on Kafka.
     healthcheck:
+      # This tries to check kafka-api versions. If kafka is ready, it works and the healthcheck passes.
       test: ["CMD", "kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
       interval: 5s
       timeout: 10s
       retries: 20
 
   server_a:
+
+    # Tells docker-compose where the Dockerfile is for server A.
     build: ./backend/server_a
+
+    # Maps host machine's port 8082 to container's port 8082
     ports:
       - "8082:8082"
+    
+    # This says that server_a waits for kafka to be ready before starting.
     depends_on:
       kafka:
         condition: service_healthy
+    
+    # Sets a couple of environment variables.
     environment:
-      - KAFKA_BROKER=kafka:9092
+      - KAFKA_BROKER=kafka:9092 # Name of the used kafka broker.
+      - KAFKAJS_NO_PARTITIONER_WARNING=1 # This silences warnings for not using partitioner.
+    
+    # Add to backend network.
     networks:
       - backend
 
   emote_generator:
+
+    # Tells where the Dockerfile for emotegen is.
     build: ./backend/emotegen
+
+    # Maps host machine's port 3000 to container's port 3000.
     ports:
       - "3000:3000"
+    
+    # Will only start after Kafka is ready.
     depends_on:
       kafka:
         condition: service_healthy
+      
     environment:
-      - KAFKA_BROKER=kafka:9092
-      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - KAFKA_BROKER=kafka:9092 # Name of the used kafka broker.
+      - KAFKAJS_NO_PARTITIONER_WARNING=1 # This silences warnings for not using partitioner.
+
+    # Add to backend network.
     networks:
       - backend
 
-  # much of the server_b service entry can be copied from server_a
-  # service above. Groups are free to
-  # CRUD this set of instructions as they see fit.
   server_b:
+
+      # Tells where the Dockerfile is for server B.
       build: ./backend/server_b
+
+      # Maps host machine's port 8080 to container's port 8080.
       ports:
       - "8080:8080"
+
+      # Server B will start only after kafka is ready.
       depends_on:
         kafka:
           condition: service_healthy
+
+        
       environment:
-        - KAFKA_BROKER=kafka:9092
-        - KAFKAJS_NO_PARTITIONER_WARNING=1
+        - KAFKA_BROKER=kafka:9092 # Name of the used kafka broker.
+        - KAFKAJS_NO_PARTITIONER_WARNING=1 # This silences warnings for not using partitioner.
+
+      # Adds server B to backend network.
       networks:
         - backend
+      
+      # This healthcheck checks that server B is operation ready. This is used in ensuring server B is
+      # ready before starting services that are dependent on server B. 
       healthcheck:
+        # This sends a get request to the REST API. If it responds with status ok, the healthcheck passes.
         test: ["CMD", "curl", "-f", "localhost:8080/settings/interval"]
         interval: 5s
         timeout: 10s
         retries: 5
+      
+      # This is used to sync settings.json in host machine and in container. This way when the host machine's settings.json
+      # gets updated when the app is used in container.
       volumes:
         - "./backend/server_b/settings.json:/app/settings.json"
 
-  # Frontend service entryis a bit different 
-  # but still quite similar. Just makes a basic container
-  # for the frontend.
   frontend:
+
+    # This tells where the Dockerfile for frontend is located.
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    
+    # This maps host machine's port 8081 to container's port 80.
     ports:
       - "8081:80"
+    
+    # Frontend starts only after server b is ready and passes the healthcheck.
     depends_on:
       server_b:
         condition: service_healthy
+    
+    # Adds frontend to backend network.
     networks:
       - backend
 
@@ -100,10 +138,3 @@ services:
 # exposed ports.
 networks:
   backend:
-
-# If you use databases for storing information, you can define
-# their volumes here.
-# Documentation: https://docs.docker.com/storage/volumes/
-# Personally I like to look at the database's image's Dockerfile
-# in the Docker Hub to see what directory it uses to store data.
-# volumes:
