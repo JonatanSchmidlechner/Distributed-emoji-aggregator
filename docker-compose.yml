@@ -72,6 +72,11 @@ services:
         - KAFKAJS_NO_PARTITIONER_WARNING=1
       networks:
         - backend
+      healthcheck:
+        test: ["CMD", "curl", "-f", "localhost:8080/settings/interval"]
+        interval: 5s
+        timeout: 10s
+        retries: 5
       volumes:
         - "./backend/server_b/settings.json:/app/settings.json"
 
@@ -85,7 +90,8 @@ services:
     ports:
       - "8081:80"
     depends_on:
-      - server_b
+      server_b:
+        condition: service_healthy
     networks:
       - backend
 
