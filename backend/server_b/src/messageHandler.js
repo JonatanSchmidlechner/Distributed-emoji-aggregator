@@ -1,6 +1,7 @@
 import {Kafka} from "kafkajs";
 import * as fs from "fs";
 import {aggregateData} from "./dataAggregater.js";
+import { json } from "stream/consumers";
 console.log("run kafka");
 const kafka = new Kafka({
     clientId: "server_b",
@@ -34,6 +35,8 @@ await loadSettings();
 
 // Array to store data, which will eventually be sent to be analysed.
 let rawData = [];
+// Array to store rawdata for the printout
+let latestData = [];
 
 await consumer.run({
     eachMessage: async ({ rawDataTopic, partition, message}) => {
@@ -42,6 +45,7 @@ await consumer.run({
         if (!allowedEmotes.includes(jsonRecord.emote)) {
             return;
         }
+        latestData.push(jsonRecord);
         rawData.push(jsonRecord);
         if (rawData.length >= interval) {
             const rawDataCopy = [...rawData];
@@ -71,3 +75,8 @@ setInterval( async () => {
         console.log(error)
     }
 }, 10000)
+
+export const getMoments = (req, res) => {
+    res.status(200).json({ value: latestData }); 
+    latestData.length = 0;
+}

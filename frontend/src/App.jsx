@@ -1,103 +1,42 @@
+import { fetchSettings, fetchRawData, updateInterval, updateThreshold, updateAllowedEmotes, } from "./api/dbUtils";
+
 import React, {useState, useEffect} from "react";
 
 function App() {
   const [interval, setIntervalValue] = useState(0);
   const [threshold, setThreshold] = useState(0);
   const [allowedEmotes, setAllowedEmotes] = useState([]);
-
-  const BASE_URL = "http://localhost:8080/settings";
+  const [message, setMessage] = useState(null);
+  const [rawMessages, setRawMessages] = useState([]);
 
   useEffect(() => {
-    fetchSettings();
-    const socket = new WebSocket("ws://localhost:8082")
+    const loadSettings = async () => {
+      const settings = await fetchSettings();
+      setIntervalValue(settings.interval);
+      setThreshold(settings.threshold);
+      setAllowedEmotes(settings.allowedEmotes);
+    };
+    loadSettings();
+
+    const socket = new WebSocket("ws://localhost:8082");
     socket.addEventListener("message", (event) => {
       const msg = JSON.parse(event.data);
+      setMessage(msg);
       console.log("This is aggregated data from server_a", msg);
     });
-    // Cleanup function so there are no memory leaks when the component unmounts.
+  
+    const rawDataInterval = setInterval(async () => {
+      const data = await fetchRawData();
+      setRawMessages(data);
+    }, 3000);
+  
     return () => {
-      console.log("cleanup function")
+      console.log("cleanup function");
       socket.removeEventListener("message", () => {});
-    }
+      clearInterval(rawDataInterval);
+    };
   }, []);
-
-  const fetchSettings = async () => {
-    try {
-      // Get interval
-      const intervalRes = await fetch(`${BASE_URL}/interval`);
-      const intervalData = await intervalRes.json();
-      setIntervalValue(intervalData.value);
-
-      // Get threshold
-      const thresholdRes = await fetch(`${BASE_URL}/threshold`);
-      const thresholdData = await thresholdRes.json();
-      setThreshold(thresholdData.value);
-
-      // Get allowed emotes
-      const emotesRes = await fetch(`${BASE_URL}/allowed-emotes`);
-      const emotesData = await emotesRes.json();
-      setAllowedEmotes(emotesData.value);
-    } catch (error) {
-      console.error("Error fetching settings:", error);
-    }
-  };
-
-  const updateInterval = async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/interval`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({interval})
-      });
-      if (response.ok) {
-        console.log("Interval updated");
-      } else {
-        console.log("Failed to update interval");
-      }
-    } catch (error) {
-      console.error("Error updating interval:", error);
-    }
-  };
-
-  const updateThreshold = async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/threshold`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({threshold})
-      });
-      if (response.ok) {
-        console.log("Threshold updated");
-      } else {
-        console.log("Failed to update threshold");
-      }
-    } catch (error) {
-      console.error("Error updating threshold:", error);
-    }
-  };
-
-  const updateAllowedEmotes = async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/allowed-emotes`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({allowedEmotes})
-      });
-      if (response.ok) {
-        console.log("Allowed Emotes updated");
-      } else {
-        console.log("Failed to update allowed emotes");
-      }
-    } catch (error) {
-      console.error("Error updating allowed emotes: ", error);
-    }
-  };
+  
 
   return (
     <div>
@@ -110,7 +49,12 @@ function App() {
           value={interval}
           onChange={(e) => setIntervalValue(Number(e.target.value))}
         />
-        <button onClick={updateInterval}>Update Interval</button>
+        <button onClick={async () => {
+          const res = await updateInterval(interval);
+          console.log(res.ok ? "Interval updated" : "Failed to update");
+        }}>
+          Update Interval
+        </button>
       </div>
 
       <div>
@@ -123,7 +67,13 @@ function App() {
           max="1"
           onChange={(e) => setThreshold(Number(e.target.value))}
         />
-        <button onClick={updateThreshold}>Update Threshold</button>
+        <button onClick={async () => {
+          const res = await updateThreshold(threshold);
+          console.log(res.ok ? "Threshold updated" : "Failed to update");
+        }}>
+          Update Threshold
+        </button>
+        
       </div>
 
       <div>
@@ -135,7 +85,32 @@ function App() {
             setAllowedEmotes(e.target.value.split(",").map(emote => emote.trim()))
           }
         />
-        <button onClick={updateAllowedEmotes}>Update Allowed Emotes</button>
+        <button onClick={async () => {
+          const res = await updateAllowedEmotes(allowedEmotes);
+          console.log(res.ok ? "Emotes updated" : "Failed to update");
+        }}>
+          Update Emotes
+        </button>
+      </div>
+
+      <div>
+        <h1>Significant moment</h1>
+        {message ? <pre>{JSON.stringify(message, null, 2)}</pre> : <p>No message yet</p>}
+      </div>
+
+      <div>
+        <h1>Raw Data</h1>
+        {rawMessages.length > 0 ? (
+          <ul>
+            {rawMessages.map((msg, idx) => (
+              <li key={idx}>
+                <pre>{JSON.stringify(msg, null, 2)}</pre>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No raw data</p>
+        )}
       </div>
     </div>
   );
