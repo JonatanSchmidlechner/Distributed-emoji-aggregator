@@ -1,6 +1,6 @@
 import express from "express";
 import {getInterval, updateInterval, getThreshold, updateThreshold, getAllowedEmotes, updateAllowedEmotes} from "../controllers/settingsController.js"
-import { getMoments } from "../messageHandler.js"
+import { getData } from "../messageHandler.js"
 
 const router = express.Router();
 
@@ -11,6 +11,6 @@ router.put("/settings/threshold", updateThreshold)
 router.get("/settings/allowed-emotes", getAllowedEmotes)
 router.put("/settings/allowed-emotes", updateAllowedEmotes)
 
-router.get("/rawData", getMoments)
+router.get("/rawData", getData)
 
 export default router;

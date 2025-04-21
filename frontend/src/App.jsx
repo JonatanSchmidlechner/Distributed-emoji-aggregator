@@ -1,12 +1,13 @@
-import { fetchSettings, fetchRawData, updateInterval, updateThreshold, updateAllowedEmotes, } from "./api/dbUtils";
-
 import React, {useState, useEffect} from "react";
+import { fetchSettings, fetchRawData, updateInterval, updateThreshold, updateAllowedEmotes, } from "./api/dbUtils";
+import { Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, TextField, Button, Paper } from '@mui/material';
+import { toast, ToastContainer } from 'react-toastify';
 
 function App() {
   const [interval, setIntervalValue] = useState(0);
   const [threshold, setThreshold] = useState(0);
   const [allowedEmotes, setAllowedEmotes] = useState([]);
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState([]);
   const [rawMessages, setRawMessages] = useState([]);
 
   useEffect(() => {
@@ -22,97 +23,179 @@ function App() {
     socket.addEventListener("message", (event) => {
       const msg = JSON.parse(event.data);
       setMessage(msg);
-      console.log("This is aggregated data from server_a", msg);
     });
   
     const rawDataInterval = setInterval(async () => {
       const data = await fetchRawData();
       setRawMessages(data);
-    }, 3000);
+    }, 300);
   
     return () => {
-      console.log("cleanup function");
       socket.removeEventListener("message", () => {});
       clearInterval(rawDataInterval);
     };
   }, []);
-  
 
   return (
-    <div>
-      <h1>Settings</h1>
+    <>
+      <ToastContainer />
 
-      <div>
-        <label>Interval:</label>
-        <input
-          type="number"
-          value={interval}
-          onChange={(e) => setIntervalValue(Number(e.target.value))}
-        />
-        <button onClick={async () => {
-          const res = await updateInterval(interval);
-          console.log(res.ok ? "Interval updated" : "Failed to update");
-        }}>
-          Update Interval
-        </button>
-      </div>
+      <Grid container size={12}
+        sx={{
+          justifyContent: "space-between"
+        }}
+      >
 
-      <div>
-        <label>Threshold:</label>
-        <input
-          type="number"
-          value={threshold}
-          step="0.01"
-          min="0"
-          max="1"
-          onChange={(e) => setThreshold(Number(e.target.value))}
-        />
-        <button onClick={async () => {
-          const res = await updateThreshold(threshold);
-          console.log(res.ok ? "Threshold updated" : "Failed to update");
-        }}>
-          Update Threshold
-        </button>
-        
-      </div>
+        <Grid item size={3} spacing={3}
+          container 
+          direction="column" 
+          sx={{
+            justifyContent: "flex-start", 
+            alignItems: "flex-start" 
+          }}
+        >
+          <Grid item xs={12} container justifyContent="center">
+            <Typography variant="h5" gutterBottom>
+              Settings
+            </Typography>
+          </Grid>
 
-      <div>
-        <label>Allowed Emotes (comma separated):</label>
-        <input
-          type="text"
-          value={allowedEmotes.join(", ")}
-          onChange={(e) =>
-            setAllowedEmotes(e.target.value.split(",").map(emote => emote.trim()))
-          }
-        />
-        <button onClick={async () => {
-          const res = await updateAllowedEmotes(allowedEmotes);
-          console.log(res.ok ? "Emotes updated" : "Failed to update");
-        }}>
-          Update Emotes
-        </button>
-      </div>
+          <Grid item>
+            <TextField
+              label="Interval"
+              type="number"
+              value={interval}
+              onChange={(e) => setIntervalValue(Number(e.target.value))}
+            />
+            <Button
+              sx={{ ml: 1, mt: 1 }}
+              variant="contained"
+              onClick={async () => {
+                const res = await updateInterval(interval);
+                res.ok ? toast.success('Interval updated') : toast.error('Failed to update');
+              }}
+            >
+              Update Interval
+            </Button>
+          </Grid>
+          <Grid item>
+            <TextField
+              label="Threshold"
+              type="number"
+              inputProps={{ step: 0.01, min: 0, max: 1 }}
+              value={threshold}
+              onChange={(e) => setThreshold(Number(e.target.value))}
+            />
+            <Button
+              sx={{ ml: 1, mt: 1 }}
+              variant="contained"
+              onClick={async () => {
+                const res = await updateThreshold(threshold);
+                res.ok ? toast.success('Threshold updated') : toast.error('Failed to update');
+              }}
+            >
+              Update Threshold
+            </Button>
+          </Grid>
+          <Grid item>
+            <TextField
+              label="Allowed Emotes (comma separated)"
+              type="text"
+              value={allowedEmotes.join(',')}
+              onChange={(e) =>
+                setAllowedEmotes(e.target.value.split(',').map((emote) => emote.trim()))
+              }
+            />
+            <Button
+              sx={{ ml: 1, mt: 1 }}
+              variant="contained"
+              onClick={async () => {
+                const res = await updateAllowedEmotes(allowedEmotes);
+                res.ok ? toast.success('Emotes updated') : toast.error('Failed to update');
+              }}
+            >
+              Update Emotes
+            </Button>
+          </Grid>
+        </Grid>
 
-      <div>
-        <h1>Significant moment</h1>
-        {message ? <pre>{JSON.stringify(message, null, 2)}</pre> : <p>No message yet</p>}
-      </div>
+        <Grid item size={6} spacing={3}
+          sx={{
+            justifyContent: "center", 
+            alignItems: "stretch" 
+          }}
+        >
+          <Typography variant="h5" gutterBottom>
+            Significant moments
+          </Typography>
+          <Typography variant="body2" gutterBottom>
+            Latest 50
+          </Typography>
+          {message.length > 0 ? (
+            <TableContainer component={Paper}>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Timestamp</TableCell>
+                    <TableCell>Emote</TableCell>
+                    <TableCell>Count</TableCell>
+                    <TableCell>Total emotes</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {message.map((msg, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{msg.timestamp}</TableCell>
+                      <TableCell>{msg.emote}</TableCell>
+                      <TableCell>{msg.count}</TableCell>
+                      <TableCell>{msg.totalEmotes}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography variant="body1">No significant moments</Typography>
+          )}
+        </Grid>
 
-      <div>
-        <h1>Raw Data</h1>
-        {rawMessages.length > 0 ? (
-          <ul>
-            {rawMessages.map((msg, idx) => (
-              <li key={idx}>
-                <pre>{JSON.stringify(msg, null, 2)}</pre>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No raw data</p>
-        )}
-      </div>
-    </div>
+        <Grid item size={2} spacing={3}
+          sx={{
+            justifyContent: "flex-end", 
+            alignItems: "stretch" 
+          }}
+        >
+          <Typography variant="h5" gutterBottom>
+            Latest emotes
+          </Typography>
+          <Typography variant="body2" gutterBottom>
+            Latest 50
+          </Typography>
+          {rawMessages.length > 0 ? (
+            <TableContainer component={Paper}>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Timestamp</TableCell>
+                    <TableCell>Emote</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {rawMessages.map((msg, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{msg.timestamp}</TableCell>
+                      <TableCell>{msg.emote}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography variant="body1">No raw data</Typography>
+          )}
+        </Grid>
+      </Grid>
+    </>
   );
 }
 

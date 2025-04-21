@@ -35,8 +35,10 @@ await loadSettings();
 
 // Array to store data, which will eventually be sent to be analysed.
 let rawData = [];
-// Array to store rawdata for the printout
+// Array to store latest rawdata for the printout
 let latestData = [];
+// Array to store latest moments
+let latestMoments = [];
 
 await consumer.run({
     eachMessage: async ({ rawDataTopic, partition, message}) => {
@@ -45,8 +47,8 @@ await consumer.run({
         if (!allowedEmotes.includes(jsonRecord.emote)) {
             return;
         }
-        latestData.push(jsonRecord);
         rawData.push(jsonRecord);
+        latestData.push(jsonRecord);
         if (rawData.length >= interval) {
             const rawDataCopy = [...rawData];
             rawData = [];
@@ -58,9 +60,13 @@ await consumer.run({
 
 const processData = async (data) => {
     const aggregation = await aggregateData(data, threshold);
+    latestMoments.push(...aggregation);
+    while (latestMoments.length > 50) {
+        latestMoments.shift();
+    }
     await producer.send({
         topic: aggregatedDataTopic,
-        messages: [{ value: JSON.stringify(aggregation)} ]
+        messages: [{ value: JSON.stringify(latestMoments)} ]
     });
 }
 
@@ -76,7 +82,9 @@ setInterval( async () => {
     }
 }, 10000)
 
-export const getMoments = (req, res) => {
-    res.status(200).json({ value: latestData }); 
-    latestData.length = 0;
+export const getData = (req, res) => {
+    while (latestData.length > 50) {
+        latestData.shift();
+    }
+    res.status(200).json({ value: latestData });
 }

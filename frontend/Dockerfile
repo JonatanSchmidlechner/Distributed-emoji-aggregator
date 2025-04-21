@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy app source and build
+# Copy app source and public
 COPY ./src ./src
 COPY ./public ./public
 RUN npm run build
