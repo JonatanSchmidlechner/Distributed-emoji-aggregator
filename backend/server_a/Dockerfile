@@ -1,18 +1,14 @@
-# This is where you define the image for
-# the server A.
-
-# You should use Node image from Docker Hub as the basis.
-
-#FROM node:version...
+# Define the base image.
 FROM node:18
+# Describe which port this service uses. This is purely documentational.
 EXPOSE 8082
-#WORKDIR ?
+# Create a new directory inside the container and define it as the working directory.
 WORKDIR /app
-#COPY ?
+# For efficiency, first only copy package.json related files to container.
 COPY package*.json ./
-# RUN ?
+# Install all dependencies.
 RUN npm install
-#COPY . .
+# Copy the rest of this service to the container.
 COPY . .
-#CMD [??]
+# Start the service.
 CMD [ "npm", "start" ]
